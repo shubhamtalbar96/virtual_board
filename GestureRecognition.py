@@ -3,7 +3,7 @@ import numpy as np
 import time
 import os
 import HandTrackingModule as htm
-import ImageRecoModule as irm
+import TesseractOcr as tocr
 
 
 overlay_list = []
@@ -31,7 +31,7 @@ cap.set(3, 1280)
 cap.set(4, 720)
 
 detector = htm.HandDetector(min_detection_confidence=0.85)
-text_recognizer = irm.ImageRecognizer()
+text_recognizer = tocr
 
 brush_thickness = 10
 eraser_thickness = 100
@@ -92,24 +92,8 @@ while True:
                     print("Selected Recognition Mode")
                     if flag:
                         print("Recognizing hand drawn image")
-                        text_result = text_recognizer.recognize_image()
+                        text_result = text_recognizer.detect_character()
                         print(text_result)
-                        # for line in text_result.lines:
-                        #     print(line.text)
-                        #     # print(line.bounding_box)
-                        #
-                        #     x1 = line.bounding_box[0]
-                        #     y1 = line.bounding_box[1]
-                        #
-                        #     x2 = line.bounding_box[4]
-                        #     y2 = line.bounding_box[5]
-                        #
-                        #     x4 = line.bounding_box[6]
-                        #     y4 = line.bounding_box[7]
-                        #
-                        #     cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                        #     cv2.putText(img, line.text, (x4, y4), font, 3, (0, 255, 0), 2, cv2.LINE_AA)
-
                     else:
                         print("Nothing to recognize !!")
 
