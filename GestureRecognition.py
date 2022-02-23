@@ -2,130 +2,185 @@ import cv2
 import numpy as np
 import time
 import os
-import HandTrackingModule as htm
-import TesseractOcr as tocr
+import HandTrackingModule as hand_tracking_module
+import TesseractModule as tess_ocr
 
 
-overlay_list = []
-file_path = 'Panel/mainPanel.jpg'
-overlay_list.append(cv2.imread(file_path))
+class GestureOcr:
+    def __init__(self):
+        self.overlay_list = []
+        file_path = 'Panel/mainPanel.jpg'
+        self.overlay_list.append(cv2.imread(file_path))
 
-file_path = 'Panel/drawPanel.jpg'
-overlay_list.append(cv2.imread(file_path))
+        file_path = 'Panel/drawPanel.jpg'
+        self.overlay_list.append(cv2.imread(file_path))
 
-file_path = 'Panel/erasePanel.jpg'
-overlay_list.append(cv2.imread(file_path))
+        file_path = 'Panel/erasePanel.jpg'
+        self.overlay_list.append(cv2.imread(file_path))
 
-file_path = 'Panel/recoPanel.jpg'
-overlay_list.append(cv2.imread(file_path))
+        file_path = 'Panel/recoPanel.jpg'
+        self.overlay_list.append(cv2.imread(file_path))
 
-# print(len(overlay_list))
-header = overlay_list[0]
-# print(header)
+        # print(len(overlay_list))
+        self.header = self.overlay_list[0]
 
-font = cv2.FONT_HERSHEY_SIMPLEX
-draw_color = (255, 0, 255)
+        # stroke color for mid-air sketching
+        self.draw_color = (255, 0, 255)
 
-cap = cv2.VideoCapture(0)
-cap.set(3, 1280)
-cap.set(4, 720)
+        self.brush_thickness = 8
+        self.eraser_thickness = 100
+        self.drawing_thickness = 15
 
-detector = htm.HandDetector(min_detection_confidence=0.85)
-text_recognizer = tocr
+    def recognize_gesture(self):
+        cap = cv2.VideoCapture(0)
+        cap.set(3, 1280)
+        cap.set(4, 720)
 
-brush_thickness = 10
-eraser_thickness = 100
+        detector = hand_tracking_module.HandDetector(min_detection_confidence=0.85)
+        text_recognizer = tess_ocr.Ocr()
 
-x_previous = 0
-y_previous = 0
+        x_previous = 0
+        y_previous = 0
 
-image_canvas = np.zeros((720, 1280, 3), np.uint8)
-flag = False
+        image_canvas = np.zeros((720, 1280, 3), np.uint8)
+        flag = False
 
-while True:
-    # 1. Import image
-    success, img = cap.read()
-    img = cv2.flip(img, 1)
+        while True:
+            # 1. Import image
+            success, image = cap.read()
+            image = cv2.flip(image, 1)
 
-    # 2. Find Hand Landmarks
-    img = detector.find_hands(img)
-    landmark_list = detector.find_position(img, draw=False)
+            # 2. Find Hand Landmarks
+            image = detector.find_hands(image)
+            landmark_list = detector.find_position(image, draw=False)
 
-    if len(landmark_list) != 0:
-        # print(landmark_list)
+            if len(landmark_list) != 0:
+                # print(landmark_list)
 
-        # tip of the index finger
-        x1, y1 = landmark_list[8][1:]
+                # tip of the index finger
+                x1, y1 = landmark_list[8][1:]
 
-        # tip of the middle finger
-        x2, y2 = landmark_list[12][1:]
+                # tip of the middle finger
+                x2, y2 = landmark_list[12][1:]
 
-        # 3. Check which fingers are up
-        fingers = detector.fingers_up()
-        # print(fingers)
+                # 3. Check which fingers are up
+                fingers = detector.fingers_up()
+                # print(fingers)
 
-        # 4. If Selection Mode - Two fingers are up
-        if fingers[1] and fingers[2]:
-            # Save the canvas if it is not empty
-            if flag:
-                images_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
-                filename = os.path.join(images_folder, "input_sample.jpg")
-                cv2.imwrite(filename, image_inverse)
+                # 4. If Clear Mode - Clean the entire canvas
+                if fingers[0] == 1 and fingers[1] == 1 and fingers[2] == 1 \
+                        and fingers[3] == 1 and fingers[4] == 1:
+                    # print("Cleaning Mode")
 
-            print("Selection Mode")
+                    # reset flag value to False
+                    flag = False
+                    # reset the entire image canvas
+                    image_canvas = np.zeros((720, 1280, 3), np.uint8)
 
-            x_previous = 0
-            y_previous = 0
+                # 4. If Selection Mode - Two fingers are up
+                elif fingers[1] == 1 and fingers[2] == 1 and fingers[0] == 0 \
+                        and fingers[3] == 0 and fingers[4] == 0:
+                    # print("Selection Mode")
 
-            # if selecting something in the header
-            if y1 < 125:
-                if 0 < x1 < 400:
-                    header = overlay_list[1]
-                    print("Selected Drawing Mode")
-                    draw_color = (255, 0, 255)
-                elif 450 < x1 < 850:
-                    header = overlay_list[2]
-                    print("Selected Erasing Mode")
-                    draw_color = (0, 0, 0)
-                elif 900 < x1 < 1280:
-                    header = overlay_list[3]
-                    print("Selected Recognition Mode")
+                    # Save the canvas if it is not empty
+                    if flag:
+                        images_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
+                        filename = os.path.join(images_folder, "input_sample.jpg")
+                        cv2.imwrite(filename, image_inverse)
+
+                    x_previous = 0
+                    y_previous = 0
+
+                    # if selecting something in the header
+                    if y1 < 125:
+                        if 0 < x1 < 400:
+                            self.header = self.overlay_list[1]
+                            print("Selected Drawing Mode")
+                            self.draw_color = (255, 0, 255)
+
+                        elif 450 < x1 < 850:
+                            self.header = self.overlay_list[2]
+                            print("Selected Erasing Mode")
+                            self.draw_color = (0, 0, 0)
+
+                        elif 900 < x1 < 1280:
+                            self.header = self.overlay_list[3]
+                            print("Selected Recognition Mode")
+
+                            if flag:
+                                print("Recognizing hand drawn image")
+                                recognition_result = text_recognizer.detect_character()
+                                # print(recognition_result)
+
+                                return recognition_result
+                            else:
+                                print("Nothing to recognize !!")
+
+                    cv2.rectangle(image, (x1, y1), (x2, y2), self.draw_color, cv2.FILLED)
+
+                # 5. If Drawing Mode - Index finger is up
+                elif fingers[1] == 1 and fingers[0] == 0 and fingers[2] == 0 and \
+                        fingers[3] == 0 and fingers[4] == 0:
+                    # print("Drawing Mode")
+
+                    # set flag value to true if drawing something
+                    flag = True
+
+                    cv2.circle(image, (x1, y1), self.drawing_thickness, self.draw_color, cv2.FILLED)
+
+                    if x_previous == 0 and y_previous == 0:
+                        x_previous, y_previous = x1, y1
+
+                    if self.draw_color == (0, 0, 0):
+                        cv2.line(image, (x_previous, y_previous), (x1, y1), self.draw_color, self.eraser_thickness)
+                        cv2.line(image_canvas, (x_previous, y_previous), (x1, y1), self.draw_color,
+                                 self.eraser_thickness)
+                    else:
+                        cv2.line(image, (x_previous, y_previous), (x1, y1), self.draw_color, self.brush_thickness)
+                        cv2.line(image_canvas, (x_previous, y_previous), (x1, y1), self.draw_color,
+                                 self.brush_thickness)
+
+                    x_previous, y_previous = x1, y1
+
+                # 6. If Recognition Mode - First and last fingers are up
+                elif fingers[1] == 1 and fingers[4] == 1 and fingers[0] == 0 \
+                        and fingers[2] == 0 and fingers[3] == 0:
+                    # print("Selected Recognition Mode")
+                    self.header = self.overlay_list[3]
+
                     if flag:
                         print("Recognizing hand drawn image")
-                        text_result = text_recognizer.detect_character()
-                        print(text_result)
+                        recognition_result = text_recognizer.detect_character()
+                        # print(recognition_result)
+
+                        return recognition_result
                     else:
                         print("Nothing to recognize !!")
 
-            cv2.rectangle(img, (x1, y1), (x2, y2), draw_color, cv2.FILLED)
+                else:
+                    # print("Default")
+                    pass
 
-        # 5. If Drawing Mode - Index finger is up
-        if fingers[1] and fingers[2] == False:
-            flag = True
+            image_gray = cv2.cvtColor(image_canvas, cv2.COLOR_BGR2GRAY)
+            _, image_inverse = cv2.threshold(image_gray, 50, 255, cv2.THRESH_BINARY_INV)
+            image_inverse = cv2.cvtColor(image_inverse, cv2.COLOR_GRAY2BGR)
+            image = cv2.bitwise_and(image, image_inverse)
+            image = cv2.bitwise_or(image, image_canvas)
 
-            cv2.circle(img, (x1, y1), 15, draw_color, cv2.FILLED)
-            print("Drawing Mode")
+            image[0:125, 0:1280] = self.header
+            # image = cv2.addWeighted(image, 0.5, image_canvas, 0.5, 0)
 
-            if x_previous == 0 and y_previous == 0:
-                x_previous, y_previous = x1, y1
+            cv2.imshow("Image", image)
+            cv2.waitKey(1)
 
-            if draw_color == (0, 0, 0):
-                cv2.line(img, (x_previous, y_previous), (x1, y1), draw_color, eraser_thickness)
-                cv2.line(image_canvas, (x_previous, y_previous), (x1, y1), draw_color, eraser_thickness)
-            else:
-                cv2.line(img, (x_previous, y_previous), (x1, y1), draw_color, brush_thickness)
-                cv2.line(image_canvas, (x_previous, y_previous), (x1, y1), draw_color, brush_thickness)
-            x_previous, y_previous = x1, y1
 
-    image_gray = cv2.cvtColor(image_canvas, cv2.COLOR_BGR2GRAY)
-    _, image_inverse = cv2.threshold(image_gray, 50, 255, cv2.THRESH_BINARY_INV)
-    image_inverse = cv2.cvtColor(image_inverse, cv2.COLOR_GRAY2BGR)
-    img = cv2.bitwise_and(img, image_inverse)
-    img = cv2.bitwise_or(img, image_canvas)
+def main():
+    gesture_ocr = GestureOcr()
 
-    img[0:125, 0:1280] = header
-    # img = cv2.addWeighted(img, 0.5, image_canvas, 0.5, 0)
+    while True:
+        reply = gesture_ocr.recognize_gesture()
+        print(f"Detected text: {reply}")
 
-    cv2.imshow("Image", img)
-    # cv2.imshow("Gray Canvas", image_gray)
-    cv2.waitKey(1)
+
+if __name__ == "__main__":
+    main()

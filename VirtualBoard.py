@@ -3,6 +3,7 @@ import numpy as np
 import time
 import os
 import HandTrackingModule as htm
+import TesseractModule as tess_ocr
 
 folder_path = "Header"
 my_list = os.listdir(folder_path)
@@ -35,6 +36,7 @@ cap.set(3, 1280)
 cap.set(4, 720)
 
 detector = htm.HandDetector(min_detection_confidence=0.85)
+text_recognizer = tess_ocr.Ocr()
 
 brush_thickness = 10
 eraser_thickness = 100
@@ -119,5 +121,5 @@ while True:
     # img = cv2.addWeighted(img, 0.5, image_canvas, 0.5, 0)
 
     cv2.imshow("Image", img)
-    # cv2.imshow("Canvas", image_canvas)
+    cv2.imshow("Canvas", image_canvas)
     cv2.waitKey(1)
