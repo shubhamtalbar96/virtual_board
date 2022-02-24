@@ -1,6 +1,23 @@
+# import os
+# from tesserocr import PyTessBaseAPI, PSM
+# from PIL import Image
+#
+#
+# class Ocr:
+#     def __init__(self):
+#         self.images_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
+#         self.filename = os.path.join(self.images_folder, "input_sample.jpg")
+#
+#     def detect_character(self):
+#         with PyTessBaseAPI(psm=PSM.SINGLE_CHAR) as api:
+#             image = Image.open(self.filename)
+#             api.SetImage(image)
+#             detected_character = api.GetUTF8Text()
+#             return detected_character
+
 import os
-from tesserocr import PyTessBaseAPI, PSM
-from PIL import Image
+import cv2
+import pytesseract
 
 
 class Ocr:
@@ -8,9 +25,67 @@ class Ocr:
         self.images_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
         self.filename = os.path.join(self.images_folder, "input_sample.jpg")
 
-    def detect_character(self):
-        with PyTessBaseAPI(psm=PSM.SINGLE_CHAR) as api:
-            image = Image.open(self.filename)
-            api.SetImage(image)
-            detected_character = api.GetUTF8Text()
-            return detected_character
+    # gray scale
+    def gray(self, img):
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # cv2.imwrite(r"./preprocess/img_gray.png", img)
+        return img
+
+    # blur
+    def blur(self, img):
+        img_blur = cv2.GaussianBlur(img, (5, 5), 0)
+        # cv2.imwrite(r"./preprocess/img_blur.png", img)
+        return img_blur
+
+    # threshold
+    def threshold(self, img):
+        # pixels with value below 100 are turned black (0) and those with higher value are turned white (255)
+        img = cv2.threshold(img, 100, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)[1]
+        # cv2.imshow('threshold', img)
+        # cv2.imwrite(r"./preprocess/img_threshold.png", img)
+        return img
+
+    # text detection
+    def contours_text(self, orig, image_canvas, contours):
+        output_text = ""
+        for cnt in contours:
+            x, y, w, h = cv2.boundingRect(cnt)
+
+            # Drawing a rectangle on copied image
+            rect = cv2.rectangle(image_canvas, (x, y), (x + w, y + h), (0, 255, 255), 2)
+
+            # cv2.imshow('cnt', rect)
+            # cv2.waitKey()
+
+            # Cropping the text block for giving input to OCR
+            cropped = orig[y:y + h, x:x + w]
+            cropped = cv2.copyMakeBorder(
+                cropped, 40, 40, 40, 40, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+
+            cv2.imshow('cropped', cropped)
+
+            # Apply OCR on the cropped image
+            # config = '--psm 10'
+            # text = pytesseract.image_to_string(cropped, lang='eng', config=config)
+
+            text = pytesseract.image_to_string(
+                cropped, config=("-c tessedit"
+                                 "_char_whitelist=0123456789"
+                                 " --psm 10"
+                                 " -l osd"
+                                 " "))
+
+            print(f"Contour Text: {text}")
+            output_text = output_text + text
+        return output_text
+
+    def detect_character(self, image_canvas):
+        im = cv2.imread(self.filename)
+
+        # Finding contours
+        im_gray = self.gray(im)
+        im_blur = self.blur(im_gray)
+        im_thresh = self.threshold(im_blur)
+
+        contours, _ = cv2.findContours(im_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        return self.contours_text(im_thresh, image_canvas, contours)

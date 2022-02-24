@@ -76,6 +76,8 @@ class GestureOcr:
                     flag = False
                     # reset the entire image canvas
                     image_canvas = np.zeros((720, 1280, 3), np.uint8)
+                    x_previous = 0
+                    y_previous = 0
 
                 # 4. If Selection Mode - Two fingers are up
                 elif fingers[1] == 1 and fingers[2] == 1 and fingers[0] == 0 \
@@ -93,7 +95,7 @@ class GestureOcr:
 
                     # if selecting something in the header
                     if y1 < 125:
-                        if 0 < x1 < 400:
+                        if 0 < x1 < 450:
                             self.header = self.overlay_list[1]
                             print("Selected Drawing Mode")
                             self.draw_color = (255, 0, 255)
@@ -109,7 +111,7 @@ class GestureOcr:
 
                             if flag:
                                 print("Recognizing hand drawn image")
-                                recognition_result = text_recognizer.detect_character()
+                                recognition_result = text_recognizer.detect_character(image)
                                 # print(recognition_result)
 
                                 return recognition_result
@@ -122,6 +124,7 @@ class GestureOcr:
                 elif fingers[1] == 1 and fingers[0] == 0 and fingers[2] == 0 and \
                         fingers[3] == 0 and fingers[4] == 0:
                     # print("Drawing Mode")
+                    self.header = self.overlay_list[1]
 
                     # set flag value to true if drawing something
                     flag = True
@@ -150,7 +153,7 @@ class GestureOcr:
 
                     if flag:
                         print("Recognizing hand drawn image")
-                        recognition_result = text_recognizer.detect_character()
+                        recognition_result = text_recognizer.detect_character(image)
                         # print(recognition_result)
 
                         return recognition_result
@@ -179,7 +182,7 @@ def main():
 
     while True:
         reply = gesture_ocr.recognize_gesture()
-        print(f"Detected text: {reply}")
+        print(f"Detected self: {reply}")
 
 
 if __name__ == "__main__":
