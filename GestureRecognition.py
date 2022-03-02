@@ -1,13 +1,12 @@
-import asyncio
 import base64
 import cv2
 import numpy as np
-import time
 import os
 import HandTrackingModule as hand_tracking_module
 import TesseractModule as tess_ocr
 
 from websocket import create_connection
+
 class GestureOcr:
     def __init__(self):
         self.overlay_list = []
@@ -51,12 +50,13 @@ class GestureOcr:
             ws = create_connection("ws://localhost:9999/")
         except Exception as e:
             print(e, 'create_connection')
+            return '1'
 
         while True:
             # 1. Import image
             success, image = cap.read()
             image = cv2.flip(image, 1)
-            image = cv2.resize(image, (1280, 720)) 
+            image = cv2.resize(image, (1280, 720)) if tess_ocr.WINDOWS_MACHINE else image
             # 2. Find Hand Landmarks
             image = detector.find_hands(image)
             landmark_list = detector.find_position(image, draw=False)
@@ -182,18 +182,17 @@ class GestureOcr:
             # image = cv2.addWeighted(image, 0.5, image_canvas, 0.5, 0)
 
             #cv2.imshow("Image", image)
-            sendImage(ws, image)
+            self.sendImage(ws, image)
             cv2.waitKey(1)
         
-def sendImage(ws, image):
-    try:
-        retval, buffer = cv2.imencode('.jpg', image)
-        jpg_as_text = base64.b64encode(buffer)        
-        ws.send(jpg_as_text)        
-    except Exception as e:
-        print(e, 'sendImage')
-        ws.close()
-        return 0
+    def sendImage(self, ws, image):
+        try:  
+            retval, buffer = cv2.imencode('.jpg', image)
+            jpg_as_text = base64.b64encode(buffer)        
+            ws.send(jpg_as_text)        
+        except Exception as e:
+            print(e, 'sendImage')
+            ws = create_connection("ws://localhost:9999/")
 
 def main():
     gesture_ocr = GestureOcr()

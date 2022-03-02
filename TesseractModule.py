@@ -19,6 +19,7 @@ import os
 import cv2
 import pytesseract
 
+WINDOWS_MACHINE = False
 
 class Ocr:
     def __init__(self):
@@ -86,7 +87,8 @@ class Ocr:
         im_gray = self.gray(im)
         im_blur = self.blur(im_gray)
         im_thresh = self.threshold(im_blur)
-        pytesseract.pytesseract.tesseract_cmd =r'C:/Program Files/Tesseract-OCR/tesseract.exe'
+        if WINDOWS_MACHINE:
+            pytesseract.pytesseract.tesseract_cmd =r'C:/Program Files/Tesseract-OCR/tesseract.exe'
 
         contours, _ = cv2.findContours(im_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         return self.contours_text(im_thresh, image_canvas, contours)
