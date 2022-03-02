@@ -121,7 +121,7 @@ class GestureOcr:
                                 print("Recognizing hand drawn image")
                                 recognition_result = text_recognizer.detect_character(image)
                                 # print(recognition_result)
-
+                                ws.close()
                                 return recognition_result
                             else:
                                 print("Nothing to recognize !!")
@@ -163,7 +163,7 @@ class GestureOcr:
                         print("Recognizing hand drawn image")
                         recognition_result = text_recognizer.detect_character(image)
                         # print(recognition_result)
-
+                        ws.close()
                         return recognition_result
                     else:
                         print("Nothing to recognize !!")
@@ -181,7 +181,7 @@ class GestureOcr:
             image[0:125, 0:1280] = self.header
             # image = cv2.addWeighted(image, 0.5, image_canvas, 0.5, 0)
 
-            cv2.imshow("Image", image)
+            #cv2.imshow("Image", image)
             sendImage(ws, image)
             cv2.waitKey(1)
         
@@ -192,6 +192,8 @@ def sendImage(ws, image):
         ws.send(jpg_as_text)        
     except Exception as e:
         print(e, 'sendImage')
+        ws.close()
+        return 0
 
 def main():
     gesture_ocr = GestureOcr()
