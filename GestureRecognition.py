@@ -249,6 +249,7 @@ class GestureOcr:
             # pin the panel header to the top of camera
             image[0:125, 0:1280] = self.header
 
+            # cv2.imshow("Canvas", image_canvas)
             # cv2.imshow("Image", image)
             # send image frame-by-frame to Unity backend server
             # this is to enable picture in picture mode within Unity
